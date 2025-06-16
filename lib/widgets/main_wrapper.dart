@@ -23,6 +23,7 @@ class MainWrapperScreen extends StatelessWidget {
 
         return Scaffold(
           body: child,
+          extendBody: true,
           bottomNavigationBar: CustomBottomNav(
             selectedIndex: tabsRouter.activeIndex,
             onItemTapped: (index) {
