@@ -35,22 +35,18 @@ class _CustomBottomNavState extends State<CustomBottomNav>
 
   bool _isExpanded = false;
 
-  // Enhanced constants
-  static const double _navHeight = 70.0;
   static const double _floatingButtonSize = 70.0;
   static const double _horizontalPadding = 40.0;
   static const double _verticalPadding = 60.0;
   static const double _containerHeight = 105.0;
-  static const double _borderRadius = 20.0;
   static const double _floatingButtonRadius = 35.0;
   static const double _iconSize = 30.0;
   static const double _itemSize = 50.0;
 
-  // Navigation items with icons and labels
-  static const List<NavItem> _navItems = [
+  final List<NavItem> _navItems = const [
     NavItem(FontAwesomeIcons.house, 'Home'),
     NavItem(FontAwesomeIcons.list, 'List'),
-    NavItem(FontAwesomeIcons.timeline, 'Timeline'), // Center floating button
+    NavItem(FontAwesomeIcons.timeline, 'Timeline'),
     NavItem(FontAwesomeIcons.box, 'Box'),
     NavItem(FontAwesomeIcons.user, 'Profile'),
   ];
@@ -59,27 +55,20 @@ class _CustomBottomNavState extends State<CustomBottomNav>
   void initState() {
     super.initState();
 
-    // Main animation controller for expansion
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
-    // Rotation controller for floating button
     _rotationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
-    _rotationAnimation =
-        Tween<double>(
-          begin: 0.0,
-          end: 0.75, // 3/4 rotation
-        ).animate(
-          CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
-        );
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.75).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
+    );
 
-    // Create individual controllers for each nav item (excluding center)
     _itemControllers = List.generate(4, (index) {
       return AnimationController(
         duration: Duration(milliseconds: 300 + (index * 50)),
@@ -87,30 +76,21 @@ class _CustomBottomNavState extends State<CustomBottomNav>
       );
     });
 
-    // Create slide animations for each item
     _slideAnimations = [
-      // Home - slide to top-left
       Tween<Offset>(begin: Offset.zero, end: const Offset(-1.8, -1.2)).animate(
         CurvedAnimation(parent: _itemControllers[0], curve: Curves.elasticOut),
       ),
-
-      // List - slide to left
       Tween<Offset>(begin: Offset.zero, end: const Offset(-2.2, -0.2)).animate(
         CurvedAnimation(parent: _itemControllers[1], curve: Curves.elasticOut),
       ),
-
-      // Box - slide to right
       Tween<Offset>(begin: Offset.zero, end: const Offset(2.2, -0.2)).animate(
         CurvedAnimation(parent: _itemControllers[2], curve: Curves.elasticOut),
       ),
-
-      // Profile - slide to top-right
       Tween<Offset>(begin: Offset.zero, end: const Offset(1.8, -1.2)).animate(
         CurvedAnimation(parent: _itemControllers[3], curve: Curves.elasticOut),
       ),
     ];
 
-    // Create scale animations for each item
     _scaleAnimations = _itemControllers.map((controller) {
       return Tween<double>(
         begin: 0.0,
@@ -136,7 +116,6 @@ class _CustomBottomNavState extends State<CustomBottomNav>
 
     if (_isExpanded) {
       _rotationController.forward();
-      // Animate items out with staggered timing
       for (int i = 0; i < _itemControllers.length; i++) {
         Future.delayed(Duration(milliseconds: i * 50), () {
           if (mounted) _itemControllers[i].forward();
@@ -144,7 +123,6 @@ class _CustomBottomNavState extends State<CustomBottomNav>
       }
     } else {
       _rotationController.reverse();
-      // Animate items back with reverse staggered timing
       for (int i = _itemControllers.length - 1; i >= 0; i--) {
         Future.delayed(
           Duration(milliseconds: (_itemControllers.length - 1 - i) * 50),
@@ -157,12 +135,10 @@ class _CustomBottomNavState extends State<CustomBottomNav>
   }
 
   void _onItemTapped(int index) {
-    // Close the expansion first
     if (_isExpanded) {
       _toggleExpansion();
     }
 
-    // Add a small delay before calling the callback to allow animation to start
     Future.delayed(const Duration(milliseconds: 100), () {
       widget.onItemTapped(index);
     });
@@ -170,7 +146,6 @@ class _CustomBottomNavState extends State<CustomBottomNav>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final effectiveBackgroundColor =
         widget.backgroundColor ?? const Color(0xff333333);
     final effectiveSelectedColor =
@@ -187,31 +162,26 @@ class _CustomBottomNavState extends State<CustomBottomNav>
             vertical: _verticalPadding,
           ),
           child: SizedBox(
-            height: _containerHeight + 100, // Extra space for expanded items
+            height: _containerHeight + 100,
             child: Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                // Backdrop blur when expanded
                 if (_isExpanded)
                   Positioned.fill(
                     child: GestureDetector(
                       onTap: _toggleExpansion,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withAlpha(77),
                       ),
                     ),
                   ),
-
-                // Animated Navigation Items (excluding center)
                 ..._buildAnimatedItems(
                   effectiveBackgroundColor,
                   effectiveSelectedColor,
                   effectiveUnselectedColor,
                 ),
-
-                // Main Floating Button (Timeline)
                 Positioned(
                   bottom: 35,
                   child: _buildMainFloatingButton(
@@ -234,12 +204,7 @@ class _CustomBottomNavState extends State<CustomBottomNav>
     Color unselectedColor,
   ) {
     List<Widget> items = [];
-    List<int> itemIndices = [
-      0,
-      1,
-      3,
-      4,
-    ]; // Skip index 2 (Timeline/center button)
+    List<int> itemIndices = [0, 1, 3, 4];
 
     for (int i = 0; i < itemIndices.length; i++) {
       int itemIndex = itemIndices[i];
@@ -248,17 +213,17 @@ class _CustomBottomNavState extends State<CustomBottomNav>
           animation: _slideAnimations[i],
           builder: (context, child) {
             return Transform.translate(
-              offset: _slideAnimations[i].value * _itemSize,
+              offset: Offset(
+                _slideAnimations[i].value.dx * _itemSize,
+                _slideAnimations[i].value.dy * _itemSize - 35,
+              ),
               child: Transform.scale(
                 scale: _scaleAnimations[i].value,
-                child: Positioned(
-                  bottom: 35,
-                  child: _buildFloatingNavItem(
-                    itemIndex,
-                    backgroundColor,
-                    selectedColor,
-                    unselectedColor,
-                  ),
+                child: _buildFloatingNavItem(
+                  itemIndex,
+                  backgroundColor,
+                  selectedColor,
+                  unselectedColor,
                 ),
               ),
             );
@@ -286,19 +251,17 @@ class _CustomBottomNavState extends State<CustomBottomNav>
           child: Material(
             color: Colors.transparent,
             elevation: 8,
-            shadowColor: Colors.black.withOpacity(0.3),
+            shadowColor: Colors.black.withAlpha(77),
             borderRadius: BorderRadius.circular(_floatingButtonRadius),
             child: InkWell(
               borderRadius: BorderRadius.circular(_floatingButtonRadius),
               onTap: () {
                 if (_isExpanded) {
-                  // If expanded, selecting timeline closes the menu
                   _toggleExpansion();
                   Future.delayed(const Duration(milliseconds: 200), () {
                     widget.onItemTapped(2);
                   });
                 } else {
-                  // If not expanded, toggle expansion
                   _toggleExpansion();
                 }
               },
@@ -349,62 +312,73 @@ class _CustomBottomNavState extends State<CustomBottomNav>
     final item = _navItems[index];
     final isSelected = widget.selectedIndex == index;
 
-    return Material(
-      color: Colors.transparent,
-      elevation: 6,
-      shadowColor: Colors.black.withOpacity(0.2),
-      borderRadius: BorderRadius.circular(_itemSize / 2),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(_itemSize / 2),
-        onTap: () => _onItemTapped(index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          height: _itemSize,
-          width: _itemSize,
-          decoration: BoxDecoration(
-            color: isSelected ? selectedColor : backgroundColor,
+    return Transform.translate(
+      offset: Offset.zero,
+      child: Transform.scale(
+        scale: 1,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Material(
+            color: Colors.transparent,
+            elevation: 6,
+            shadowColor: Colors.black.withAlpha(51),
             borderRadius: BorderRadius.circular(_itemSize / 2),
-            border: Border.all(
-              color: isSelected
-                  ? selectedColor
-                  : unselectedColor.withOpacity(0.3),
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedScale(
-                scale: isSelected ? 1.1 : 1.0,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(_itemSize / 2),
+              onTap: () => _onItemTapped(index),
+              child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
-                child: Icon(
-                  item.icon,
-                  color: isSelected ? Colors.black87 : unselectedColor,
-                  size: 20,
+                height: _itemSize,
+                width: _itemSize,
+                decoration: BoxDecoration(
+                  color: isSelected ? selectedColor : backgroundColor,
+                  borderRadius: BorderRadius.circular(_itemSize / 2),
+                  border: Border.all(
+                    color: isSelected
+                        ? selectedColor
+                        : unselectedColor.withAlpha(77),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(38),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedScale(
+                      scale: isSelected ? 1.1 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      child: Icon(
+                        item.icon,
+                        color: isSelected ? Colors.black87 : unselectedColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.label,
+                      style: TextStyle(
+                        color: isSelected ? Colors.black87 : unselectedColor,
+                        fontSize: 8,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                item.label,
-                style: TextStyle(
-                  color: isSelected ? Colors.black87 : unselectedColor,
-                  fontSize: 8,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -419,9 +393,7 @@ class NavItem {
   const NavItem(this.icon, this.label);
 }
 
-// Enhanced extension with more options
-extension CustomBottomNavExtension on CustomBottomNav {
-  /// Creates a floating navigation bar with animated center expansion
+extension on CustomBottomNav {
   static CustomBottomNav floating({
     required int selectedIndex,
     required Function(int) onItemTapped,
@@ -437,7 +409,6 @@ extension CustomBottomNavExtension on CustomBottomNav {
     unselectedColor: unselectedColor,
   );
 
-  /// Creates a standard navigation bar without floating button
   static CustomBottomNav standard({
     required int selectedIndex,
     required Function(int) onItemTapped,
@@ -453,7 +424,6 @@ extension CustomBottomNavExtension on CustomBottomNav {
     unselectedColor: unselectedColor,
   );
 
-  /// Creates a minimal transparent navigation bar
   static CustomBottomNav minimal({
     required int selectedIndex,
     required Function(int) onItemTapped,

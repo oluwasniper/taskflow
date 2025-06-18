@@ -92,7 +92,7 @@ class TaskRoute extends _i7.PageRouteInfo<void> {
   static _i7.PageInfo page = _i7.PageInfo(
     name,
     builder: (data) {
-      return _i5.TaskScreen();
+      return const _i5.TaskScreen();
     },
   );
 }
