@@ -1,9 +1,46 @@
+// lib/presentation/screens/home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:auto_route/auto_route.dart';
-import 'package:taskflow/models/task.dart';
+import 'package:taskflow/models/task.dart'; // Make sure this import is correct
 import 'dart:math';
 
-// lib/models/task.dart
+// Extension to add UI-specific properties to your existing Priority enum
+// This avoids modifying your core model file.
+extension PriorityExtension on Priority {
+  String get displayName {
+    switch (this) {
+      case Priority.High: // Corrected Casing
+        return 'High';
+      case Priority.Medium: // Corrected Casing
+        return 'Medium';
+      case Priority.Low: // Corrected Casing
+        return 'Low';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case Priority.High: // Corrected Casing
+        return Colors.red;
+      case Priority.Medium: // Corrected Casing
+        return Colors.orange;
+      case Priority.Low: // Corrected Casing
+        return Colors.blue;
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case Priority.High: // Corrected Casing
+        return Icons.keyboard_double_arrow_up;
+      case Priority.Medium: // Corrected Casing
+        return Icons.remove;
+      case Priority.Low: // Corrected Casing
+        return Icons.keyboard_double_arrow_down;
+    }
+  }
+}
 
 @RoutePage()
 class HomeScreen extends StatefulWidget {
@@ -14,18 +51,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  // A list to hold all the Task objects.
   final List<Task> _tasks = [];
-  // A list to hold the tasks that are currently visible after filtering.
   List<Task> _filteredTasks = [];
-  // The current search query entered by the user.
   String _searchQuery = '';
-  // The currently selected task filter.
   TaskFilter _currentFilter = TaskFilter.all;
-  // A boolean to control the visibility of the new task input card.
-  bool _isNewTaskCardVisible = false;
 
-  // Animation controller for the Floating Action Button.
   late AnimationController _fabAnimationController;
   late Animation<double> _fabAnimation;
 
@@ -49,15 +79,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // Toggles the visibility of the new task card.
-  void _toggleNewTaskCard() {
-    setState(() {
-      _isNewTaskCardVisible = !_isNewTaskCardVisible;
-    });
-  }
-
-  // Adds a new task to the list.
-  void _addTask(String title) {
+  void _addTask({
+    required String title,
+    String description = '',
+    Priority priority = Priority.Medium, // Corrected Casing
+  }) {
     if (title.isNotEmpty) {
       setState(() {
         final newTask = Task(
@@ -65,17 +91,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               DateTime.now().toIso8601String() +
               Random().nextInt(1000).toString(),
           title: title,
-          dueDate: DateTime.now(),
+          description: description,
+          priority: priority,
+          dueDate: DateTime.now().add(const Duration(days: 1)),
+          // reminderDate is removed as it's not in the Task model
         );
         _tasks.add(newTask);
         _updateFilteredTasks();
-        _isNewTaskCardVisible = false;
       });
       _showSnackBar('Task added successfully!', Colors.green);
     }
   }
 
-  // Toggles the completion status of a task.
   void _toggleTask(Task task) {
     setState(() {
       final taskIndex = _tasks.indexWhere((t) => t.id == task.id);
@@ -84,9 +111,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
       _updateFilteredTasks();
     });
+
+    final message = !task.isCompleted
+        ? 'Task completed!'
+        : 'Task marked as pending';
+    final color = !task.isCompleted ? Colors.green : Colors.orange;
+    _showSnackBar(message, color);
   }
 
-  // Deletes a task from the list.
   void _deleteTask(Task task) {
     showDialog(
       context: context,
@@ -100,9 +132,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             'Delete Task',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-          content: const Text(
-            'Are you sure you want to delete this task?',
-            style: TextStyle(color: Colors.grey),
+          content: Text(
+            'Are you sure you want to delete "${task.title}"?',
+            style: const TextStyle(color: Colors.grey),
           ),
           actions: [
             TextButton(
@@ -133,12 +165,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Updates the list of filtered tasks based on the search query and current filter.
   void _updateFilteredTasks() {
     setState(() {
       List<Task> filtered = _tasks;
 
-      // Apply search filter.
       if (_searchQuery.isNotEmpty) {
         filtered = filtered
             .where(
@@ -148,7 +178,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             .toList();
       }
 
-      // Apply status filter.
       switch (_currentFilter) {
         case TaskFilter.completed:
           filtered = filtered.where((task) => task.isCompleted).toList();
@@ -164,7 +193,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
-  // Shows a SnackBar with a message and color.
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -177,7 +205,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Shows a modal bottom sheet with filter options.
+  void _showCreateTaskPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return _CreateTaskDialog(
+          onCreateTask:
+              ({
+                required String title,
+                String description = '',
+                Priority priority = Priority.Medium, // Corrected Casing
+              }) {
+                _addTask(
+                  title: title,
+                  description: description,
+                  priority: priority,
+                );
+              },
+        );
+      },
+    );
+  }
+
   void _showFilterOptions() {
     showModalBottomSheet(
       context: context,
@@ -191,6 +241,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const Text(
                 'Filter Tasks',
                 style: TextStyle(
@@ -238,71 +297,303 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xff1E1E1E),
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              // The main app bar with a header.
-              SliverAppBar(
-                expandedHeight: 120,
-                floating: false,
-                pinned: true,
-                backgroundColor: const Color(0xff1E1E1E),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-                    child: const _Header(),
-                  ),
-                ),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            backgroundColor: const Color(0xff1E1E1E),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+                child: const _Header(),
               ),
-              // The main content of the screen, including search, stats, and tasks.
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      // The search bar and filter button.
-                      _SearchBar(
-                        onSearchChanged: (query) {
-                          _searchQuery = query;
-                          _updateFilteredTasks();
-                        },
-                        onFilterPressed: () => _showFilterOptions(),
-                      ),
-                      const SizedBox(height: 20),
-                      // The task statistics section.
-                      _TaskStats(tasks: _tasks),
-                      const SizedBox(height: 20),
-                      const _CustomDivider(),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ),
-              // The list of tasks.
-              SliverFillRemaining(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: _TaskList(
-                    tasks: _filteredTasks,
-                    onToggle: _toggleTask,
-                    onDelete: _deleteTask,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          // The floating card for adding a new task.
-          _NewTaskCard(
-            isVisible: _isNewTaskCardVisible,
-            onAddTask: _addTask,
-            onCancel: _toggleNewTaskCard,
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  _SearchBar(
+                    onSearchChanged: (query) {
+                      _searchQuery = query;
+                      _updateFilteredTasks();
+                    },
+                    onFilterPressed: _showFilterOptions,
+                    currentFilter: _currentFilter,
+                  ),
+                  const SizedBox(height: 20),
+                  _TaskStats(tasks: _tasks),
+                  const SizedBox(height: 20),
+                  const _CustomDivider(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+          SliverFillRemaining(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: _TaskList(
+                tasks: _filteredTasks,
+                onToggle: _toggleTask,
+                onDelete: _deleteTask,
+              ),
+            ),
           ),
         ],
       ),
       floatingActionButton: ScaleTransition(
         scale: _fabAnimation,
-        child: _CustomFloatingActionButton(onPressed: _toggleNewTaskCard),
+        child: _CustomFloatingActionButton(onPressed: _showCreateTaskPopup),
+      ),
+    );
+  }
+}
+
+class _CreateTaskDialog extends StatefulWidget {
+  final Function({required String title, String description, Priority priority})
+  onCreateTask;
+
+  const _CreateTaskDialog({required this.onCreateTask});
+
+  @override
+  State<_CreateTaskDialog> createState() => _CreateTaskDialogState();
+}
+
+class _CreateTaskDialogState extends State<_CreateTaskDialog> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  Priority _selectedPriority = Priority.Medium; // Corrected Casing
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _createTask() {
+    final title = _titleController.text.trim();
+    if (title.isNotEmpty) {
+      widget.onCreateTask(
+        title: title,
+        description: _descriptionController.text.trim(),
+        priority: _selectedPriority,
+      );
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a task title'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xff2D2D2D),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue, Colors.blue.shade400],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.add_task,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Create New Task',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Title Input
+              const Text(
+                'Task Title',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Enter task title...',
+                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  filled: true,
+                  fillColor: const Color(0xff1E1E1E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Description Input
+              const Text(
+                'Description (Optional)',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _descriptionController,
+                style: const TextStyle(color: Colors.white),
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Add more details...',
+                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  filled: true,
+                  fillColor: const Color(0xff1E1E1E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Priority Selection
+              const Text(
+                'Priority',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xff1E1E1E),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: Priority.values.map((priority) {
+                    final isSelected = _selectedPriority == priority;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            setState(() => _selectedPriority = priority),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? priority.color.withOpacity(0.2)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: isSelected
+                                ? Border.all(color: priority.color)
+                                : null,
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                priority.icon,
+                                color: isSelected
+                                    ? priority.color
+                                    : Colors.grey,
+                                size: 20,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                priority.displayName,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? priority.color
+                                      : Colors.grey,
+                                  fontSize: 12,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.grey[400]),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                    onPressed: _createTask,
+                    child: const Text('Create Task'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -338,7 +629,7 @@ class _Header extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
-              colors: [Colors.blue, Colors.blue.shade300],
+              colors: [Colors.blue, Colors.blue.shade400],
             ),
           ),
           child: const CircleAvatar(
@@ -356,10 +647,12 @@ class _Header extends StatelessWidget {
 class _SearchBar extends StatelessWidget {
   final Function(String) onSearchChanged;
   final VoidCallback onFilterPressed;
+  final TaskFilter currentFilter;
 
   const _SearchBar({
     required this.onSearchChanged,
     required this.onFilterPressed,
+    required this.currentFilter,
   });
 
   @override
@@ -396,6 +689,7 @@ class _SearchBar extends StatelessWidget {
           child: IconButton(
             icon: const Icon(Icons.tune, color: Colors.blue, size: 20),
             onPressed: onFilterPressed,
+            tooltip: 'Filter: ${currentFilter.displayName}',
           ),
         ),
       ],
@@ -581,23 +875,60 @@ class _TaskList extends StatelessWidget {
                 ),
               ),
             ),
-            title: Text(
-              task.title,
-              style: TextStyle(
-                color: task.isCompleted ? Colors.grey[500] : Colors.white,
-                fontSize: 16,
-                decoration: task.isCompleted
-                    ? TextDecoration.lineThrough
-                    : TextDecoration.none,
-              ),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: TextStyle(
+                    color: task.isCompleted ? Colors.grey[500] : Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    decoration: task.isCompleted
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
+                  ),
+                ),
+                if (task.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    task.description,
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  ),
+                ],
+              ],
             ),
-            trailing: IconButton(
-              icon: Icon(
-                Icons.delete_outline,
-                color: Colors.red[400],
-                size: 20,
-              ),
-              onPressed: () => onDelete(task),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: task.priority.color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: task.priority.color),
+                  ),
+                  child: Text(
+                    task.priority.displayName,
+                    style: TextStyle(
+                      color: task.priority.color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: Colors.red.withOpacity(0.7),
+                  ),
+                  onPressed: () => onDelete(task),
+                ),
+              ],
             ),
           ),
         );
@@ -606,127 +937,7 @@ class _TaskList extends StatelessWidget {
   }
 }
 
-// A widget for the floating card to add a new task.
-class _NewTaskCard extends StatefulWidget {
-  final bool isVisible;
-  final Function(String) onAddTask;
-  final VoidCallback onCancel;
-
-  const _NewTaskCard({
-    required this.isVisible,
-    required this.onAddTask,
-    required this.onCancel,
-  });
-
-  @override
-  State<_NewTaskCard> createState() => _NewTaskCardState();
-}
-
-class _NewTaskCardState extends State<_NewTaskCard> {
-  final TextEditingController _taskController = TextEditingController();
-
-  @override
-  void dispose() {
-    _taskController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Visibility(
-      visible: widget.isVisible,
-      child: GestureDetector(
-        onTap: widget.onCancel,
-        child: Container(
-          color: Colors.black.withOpacity(0.5),
-          child: Center(
-            child: Material(
-              color: Colors.transparent,
-              child: GestureDetector(
-                onTap:
-                    () {}, // Prevents the card from closing when tapped inside.
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xff2D2D2D).withOpacity(0.95),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Add New Task',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _taskController,
-                        autofocus: true,
-                        style: const TextStyle(color: Colors.white),
-                        maxLines: 3,
-                        minLines: 1,
-                        decoration: InputDecoration(
-                          hintText: 'What do you need to do?',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          filled: true,
-                          fillColor: const Color(0xff1E1E1E),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              _taskController.clear();
-                              widget.onCancel();
-                            },
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(color: Colors.grey[400]),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              widget.onAddTask(_taskController.text.trim());
-                              _taskController.clear();
-                            },
-                            child: const Text('Add Task'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// A custom Floating Action Button with a pressed animation.
+// A custom Floating Action Button.
 class _CustomFloatingActionButton extends StatefulWidget {
   final VoidCallback onPressed;
 
@@ -739,48 +950,12 @@ class _CustomFloatingActionButton extends StatefulWidget {
 
 class _CustomFloatingActionButtonState
     extends State<_CustomFloatingActionButton> {
-  bool _isPressed = false;
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onPressed();
-      },
-      onTapCancel: () => setState(() => _isPressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        transform: Matrix4.identity()..scale(_isPressed ? 0.95 : 1.0),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.blue, Colors.blue.shade600],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
-              blurRadius: _isPressed ? 5 : 10,
-              offset: Offset(0, _isPressed ? 2 : 4),
-              spreadRadius: _isPressed ? 1 : 2,
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          highlightElevation: 0,
-          splashColor: Colors.white.withOpacity(0.2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          onPressed: widget.onPressed,
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
-      ),
+    return FloatingActionButton(
+      onPressed: widget.onPressed,
+      backgroundColor: Colors.blue,
+      child: const Icon(Icons.add, color: Colors.white),
     );
   }
 }

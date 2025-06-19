@@ -76,7 +76,7 @@ class ProfileRoute extends _i7.PageRouteInfo<void> {
   static _i7.PageInfo page = _i7.PageInfo(
     name,
     builder: (data) {
-      return _i4.ProfileScreen();
+      return const _i4.ProfileScreen();
     },
   );
 }
@@ -98,7 +98,7 @@ class TaskRoute extends _i7.PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [_i6.TimelinePage]
+/// [_i6.TimelineScreen]
 class TimelineRoute extends _i7.PageRouteInfo<void> {
   const TimelineRoute({List<_i7.PageRouteInfo>? children})
     : super(TimelineRoute.name, initialChildren: children);
@@ -108,7 +108,7 @@ class TimelineRoute extends _i7.PageRouteInfo<void> {
   static _i7.PageInfo page = _i7.PageInfo(
     name,
     builder: (data) {
-      return _i6.TimelinePage();
+      return const _i6.TimelineScreen();
     },
   );
 }
